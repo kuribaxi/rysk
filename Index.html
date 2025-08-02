@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SL Avgångar</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    input, button { padding: 0.5rem; margin: 0.2rem; }
+    #departures { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>SL Avgångar</h1>
+  <p>Skriv in ett **SiteId** för att se avgångar (t.ex. T-Centralen = 9192)</p>
+  <input type="text" id="siteIdInput" placeholder="Ex: 9192">
+  <button onclick="getDepartures()">Visa avgångar</button>
+  <div id="departures"></div>
+
+  <script>
+    const apiKey = 'DIN_API_NYCKEL_HÄR'; // <-- Klistra in din nyckel här
+
+    function getDepartures() {
+      const siteId = document.getElementById('siteIdInput').value;
+      const url = `https://api.sl.se/api2/realtimedeparturev4.json?key=${apiKey}&siteid=${siteId}&timewindow=30`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const output = document.getElementById('departures');
+          output.innerHTML = '';
+          if (data.ResponseData) {
+            const all = [...data.ResponseData.Metros, ...data.ResponseData.Buses];
+            all.forEach(dep => {
+              output.innerHTML += `<p><strong>${dep.LineNumber}</strong> mot ${dep.Destination} – avgår om ${dep.DisplayTime}</p>`;
+            });
+          } else {
+            output.innerHTML = 'Inga avgångar hittades.';
+          }
+        })
+        .catch(err => {
+          document.getElementById('departures').innerText = 'Fel: ' + err.message;
+        });
+    }
+  </script>
+</body>
+</html>
