@@ -1,46 +1,76 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SL Avgångar</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    input, button { padding: 0.5rem; margin: 0.2rem; }
-    #departures { margin-top: 1rem; }
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      padding: 0.5em;
+      margin: 0.3em 0;
+      width: 100%;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      padding: 0.3em 0;
+      border-bottom: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
   <h1>SL Avgångar</h1>
-  <p>Skriv in ett **SiteId** för att se avgångar (t.ex. T-Centralen = 9192)</p>
-  <input type="text" id="siteIdInput" placeholder="Ex: 9192">
-  <button onclick="getDepartures()">Visa avgångar</button>
-  <div id="departures"></div>
+  <label for="siteId">Stationens SiteID (t.ex. 9304 för T-Centralen)</label>
+  <input type="text" id="siteId" placeholder="Ange SiteID" />
+  <button onclick="hämtaAvgångar()">Hämta avgångar</button>
+  <ul id="resultat"></ul>
 
   <script>
-    const apiKey = 'DIN_API_NYCKEL_HÄR'; // <-- Klistra in din nyckel här
+    const apiKey = '37c6eeee535c49c98860e243bc4af77b';
 
-    function getDepartures() {
-      const siteId = document.getElementById('siteIdInput').value;
-      const url = `https://api.sl.se/api2/realtimedeparturev4.json?key=${apiKey}&siteid=${siteId}&timewindow=30`;
+    async function hämtaAvgångar() {
+      const siteId = document.getElementById('siteId').value.trim();
+      const resultatLista = document.getElementById('resultat');
+      resultatLista.innerHTML = 'Hämtar data...';
 
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const output = document.getElementById('departures');
-          output.innerHTML = '';
-          if (data.ResponseData) {
-            const all = [...data.ResponseData.Metros, ...data.ResponseData.Buses];
-            all.forEach(dep => {
-              output.innerHTML += `<p><strong>${dep.LineNumber}</strong> mot ${dep.Destination} – avgår om ${dep.DisplayTime}</p>`;
-            });
-          } else {
-            output.innerHTML = 'Inga avgångar hittades.';
-          }
-        })
-        .catch(err => {
-          document.getElementById('departures').innerText = 'Fel: ' + err.message;
-        });
+      const url = `https://api.sl.se/api2/RealtimeDeparturesV4.json?key=${apiKey}&siteid=${siteId}&timewindow=30`;
+
+      try {
+        const svar = await fetch(url);
+        const data = await svar.json();
+
+        if (!data.ResponseData) {
+          resultatLista.innerHTML = '<li>Ingen data hittades.</li>';
+          return;
+        }
+
+        const avgångar = [
+          ...data.ResponseData.Metros,
+          ...data.ResponseData.Buses,
+          ...data.ResponseData.Trains,
+          ...data.ResponseData.Trams,
+          ...data.ResponseData.Ships
+        ];
+
+        if (avgångar.length === 0) {
+          resultatLista.innerHTML = '<li>Inga avgångar inom 30 min.</li>';
+          return;
+        }
+
+        resultatLista.innerHTML = avgångar.map(a => 
+          `<li><strong>${a.LineNumber}</strong> ${a.Destination} – ${a.DisplayTime}</li>`
+        ).join('');
+      } catch (error) {
+        resultatLista.innerHTML = `<li>Fel vid hämtning: ${error.message}</li>`;
+      }
     }
   </script>
 </body>
